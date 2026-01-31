@@ -1,0 +1,126 @@
+{
+	"name": "pl_dq_rowcount_bronze_vs_silver",
+	"properties": {
+		"activities": [
+			{
+				"name": "if_rowcount_match",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "gm_silver_files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(\n  length(activity('gm_bronze_files').output.childItems),\n  length(activity('gm_silver_files').output.childItems)\n)\n",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "set_rowcount_pass",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "dq_rowcount_status",
+								"value": "Row count reconciliation PASSED"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "gm_bronze_files",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_bronze_credit_card_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"ingest_date": "2026-01-23"
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "gm_silver_files",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "gm_bronze_files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_silver_credit_card_folder",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"ingest_date": {
+				"type": "string",
+				"defaultValue": "2026-01-23"
+			}
+		},
+		"variables": {
+			"dq_rowcount_status": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-01-25T01:17:20Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

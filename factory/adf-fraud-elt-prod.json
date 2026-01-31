@@ -1,0 +1,9 @@
+{
+	"name": "adf-fraud-elt-prod",
+	"location": "uksouth",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "95efe35b-ac55-41df-af5f-92e7c8a4d6ec",
+		"tenantId": "543f2205-fcdc-4c35-ad7a-ea6bd74ca885"
+	}
+}

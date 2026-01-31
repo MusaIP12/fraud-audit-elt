@@ -1,0 +1,117 @@
+{
+	"name": "df_bronze_to_silver_credit_card",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_bronze_credit_card",
+						"type": "DatasetReference"
+					},
+					"name": "srcBronzeCreditCard"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_credit_card",
+						"type": "DatasetReference"
+					},
+					"name": "snkSilverCreditCard"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selStandardizeColumns"
+				},
+				{
+					"name": "drvCastTypes"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Time as short,",
+				"          V1 as double,",
+				"          V2 as double,",
+				"          V3 as double,",
+				"          V4 as double,",
+				"          V5 as double,",
+				"          V6 as double,",
+				"          V7 as double,",
+				"          V8 as double,",
+				"          V9 as double,",
+				"          V10 as double,",
+				"          V11 as double,",
+				"          V12 as double,",
+				"          V13 as double,",
+				"          V14 as double,",
+				"          V15 as double,",
+				"          V16 as double,",
+				"          V17 as double,",
+				"          V18 as double,",
+				"          V19 as double,",
+				"          V20 as double,",
+				"          V21 as double,",
+				"          V22 as double,",
+				"          V23 as double,",
+				"          V24 as double,",
+				"          V25 as double,",
+				"          V26 as double,",
+				"          V27 as double,",
+				"          V28 as double,",
+				"          Amount as double,",
+				"          Class as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> srcBronzeCreditCard",
+				"srcBronzeCreditCard select(mapColumn(",
+				"          time = Time,",
+				"          V1,",
+				"          V2,",
+				"          V3,",
+				"          V4,",
+				"          V5,",
+				"          V6,",
+				"          V7,",
+				"          V8,",
+				"          V9,",
+				"          V10,",
+				"          V11,",
+				"          V12,",
+				"          V13,",
+				"          V14,",
+				"          V15,",
+				"          V16,",
+				"          V17,",
+				"          V18,",
+				"          V19,",
+				"          V20,",
+				"          V21,",
+				"          V22,",
+				"          V23,",
+				"          V24,",
+				"          V25,",
+				"          V26,",
+				"          V27,",
+				"          V28,",
+				"          amount = Amount,",
+				"          fraud_label = Class",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selStandardizeColumns",
+				"selStandardizeColumns derive(time = toInteger(time),",
+				"          amount = toDouble(amount)) ~> drvCastTypes",
+				"drvCastTypes sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     truncate: true,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> snkSilverCreditCard"
+			]
+		}
+	}
+}

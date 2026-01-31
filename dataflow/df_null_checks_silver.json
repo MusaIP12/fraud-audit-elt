@@ -1,0 +1,106 @@
+{
+	"name": "df_null_checks_silver",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_credit_card",
+						"type": "DatasetReference"
+					},
+					"name": "srcSilver"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_credit_card",
+						"type": "DatasetReference"
+					},
+					"name": "sinkPassNullCheck"
+				}
+			],
+			"transformations": [
+				{
+					"name": "csRowLevelChecks"
+				},
+				{
+					"name": "assertInvalidFraudLabel"
+				},
+				{
+					"name": "aggNullCounts"
+				},
+				{
+					"name": "csNullCheck"
+				},
+				{
+					"name": "assertNoNulls"
+				},
+				{
+					"name": "assertNegativeAmount",
+					"description": "Negative transaction amount detected\n"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          time as short,",
+				"          V1 as double,",
+				"          V2 as double,",
+				"          V3 as double,",
+				"          V4 as double,",
+				"          V5 as double,",
+				"          V6 as double,",
+				"          V7 as double,",
+				"          V8 as double,",
+				"          V9 as double,",
+				"          V10 as double,",
+				"          V11 as double,",
+				"          V12 as double,",
+				"          V13 as double,",
+				"          V14 as double,",
+				"          V15 as double,",
+				"          V16 as double,",
+				"          V17 as double,",
+				"          V18 as double,",
+				"          V19 as double,",
+				"          V20 as double,",
+				"          V21 as double,",
+				"          V22 as double,",
+				"          V23 as double,",
+				"          V24 as double,",
+				"          V25 as double,",
+				"          V26 as double,",
+				"          V27 as double,",
+				"          V28 as double,",
+				"          amount as double,",
+				"          fraud_label as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> srcSilver",
+				"srcSilver split(isNull(fraud_label),",
+				"     amount < 0,",
+				"     disjoint: false) ~> csRowLevelChecks@(invalidFraudLabel, negativeAmount, validRows)",
+				"csRowLevelChecks@invalidFraudLabel assert(expectTrue(false(), false, 'assert1'),",
+				"     abort: true) ~> assertInvalidFraudLabel",
+				"csRowLevelChecks@validRows aggregate(nullamount = sum(toInteger(iif(isNull(amount), 1, 0))),",
+				"          nulltime = sum(toInteger(iif(isNull(time), 1, 0))),",
+				"          nullclass = sum(toInteger(iif(isNull(fraud_label), 1, 0)))) ~> aggNullCounts",
+				"aggNullCounts split(nullamount > 0 || nullclass > 0 || nulltime > 0,",
+				"     disjoint: false) ~> csNullCheck@(hasNulls, noNulls)",
+				"csNullCheck@hasNulls assert(expectTrue(false(), false, 'assert1'),",
+				"     abort: true) ~> assertNoNulls",
+				"csRowLevelChecks@negativeAmount assert(expectTrue(false(), false, 'assert1'),",
+				"     abort: true) ~> assertNegativeAmount",
+				"csNullCheck@noNulls sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sinkPassNullCheck"
+			]
+		}
+	}
+}

@@ -1,0 +1,156 @@
+{
+	"name": "df_gold_fraud_kpis",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_credit_card",
+						"type": "DatasetReference"
+					},
+					"name": "srcSilverGold"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_gold_fraud_exposure_by_amount",
+						"type": "DatasetReference"
+					},
+					"name": "sinkFraudExposureByAmount"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_gold_fraud_rate_half_day",
+						"type": "DatasetReference"
+					},
+					"name": "sinkFraudRateHalfDay"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_gold_high_risk_transactions",
+						"type": "DatasetReference"
+					},
+					"name": "dsGoldHighRiskTransactions"
+				}
+			],
+			"transformations": [
+				{
+					"name": "drvTxnHalfDay"
+				},
+				{
+					"name": "drvAmountBucket"
+				},
+				{
+					"name": "fltFraudOnly"
+				},
+				{
+					"name": "aggFraudByAmount"
+				},
+				{
+					"name": "aggFraudHalfDay"
+				},
+				{
+					"name": "drvFraudRate"
+				},
+				{
+					"name": "fltFraudOnlyKPI3"
+				},
+				{
+					"name": "winRankFraudAmount"
+				},
+				{
+					"name": "fltTop5Percent"
+				},
+				{
+					"name": "selHighRiskFields"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          time as short,",
+				"          V1 as double,",
+				"          V2 as double,",
+				"          V3 as double,",
+				"          V4 as double,",
+				"          V5 as double,",
+				"          V6 as double,",
+				"          V7 as double,",
+				"          V8 as double,",
+				"          V9 as double,",
+				"          V10 as double,",
+				"          V11 as double,",
+				"          V12 as double,",
+				"          V13 as double,",
+				"          V14 as double,",
+				"          V15 as double,",
+				"          V16 as double,",
+				"          V17 as double,",
+				"          V18 as double,",
+				"          V19 as double,",
+				"          V20 as double,",
+				"          V21 as double,",
+				"          V22 as double,",
+				"          V23 as double,",
+				"          V24 as double,",
+				"          V25 as double,",
+				"          V26 as double,",
+				"          V27 as double,",
+				"          V28 as double,",
+				"          amount as double,",
+				"          fraud_label as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> srcSilverGold",
+				"srcSilverGold derive(txn_half_day = iif(     isNull(time),     -1,     toInteger(time / 43200) )) ~> drvTxnHalfDay",
+				"drvTxnHalfDay derive(amount_bucket = iif(amount < 10, '0-10',  iif(amount < 50, '10-50',  iif(amount < 100, '50-100',  iif(amount < 500, '100-500', '500+'))))) ~> drvAmountBucket",
+				"drvAmountBucket filter(fraud_label == true()) ~> fltFraudOnly",
+				"fltFraudOnly aggregate(groupBy(amount_bucket),",
+				"     fraud_txns = count(),",
+				"          fraud_amount = sum(amount),",
+				"          avg_fraud_amount = avg(amount)) ~> aggFraudByAmount",
+				"drvTxnHalfDay aggregate(groupBy(txn_half_day),",
+				"     total_txns = count(),",
+				"          fraud_txns = sum(iif(fraud_label == true(), 1, 0))) ~> aggFraudHalfDay",
+				"aggFraudHalfDay derive(fraud_rate = fraud_txns / total_txns) ~> drvFraudRate",
+				"drvTxnHalfDay filter(fraud_label == true() && txn_half_day != -1) ~> fltFraudOnlyKPI3",
+				"fltFraudOnlyKPI3 window(over(txn_half_day),",
+				"     desc(amount, false),",
+				"     fraud_rank = rowNumber(),",
+				"          total_fraud = count()) ~> winRankFraudAmount",
+				"winRankFraudAmount filter(fraud_rank <= ceil(total_fraud * 0.05)) ~> fltTop5Percent",
+				"fltTop5Percent select(mapColumn(",
+				"          time,",
+				"          amount,",
+				"          txn_half_day,",
+				"          fraud_rank",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selHighRiskFields",
+				"aggFraudByAmount sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sinkFraudExposureByAmount",
+				"drvFraudRate sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sinkFraudRateHalfDay",
+				"selHighRiskFields sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> dsGoldHighRiskTransactions"
+			]
+		}
+	}
+}
